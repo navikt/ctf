@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 
 FROM python:3.9-slim-buster as release
-WORKDIR /opt/CTFd
+WORKDIR /tmp/CTFd
 
 # hadolint ignore=DL3008
 RUN apt-get update \
@@ -36,20 +36,20 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=1001:1001 . /opt/CTFd
+COPY --chown=1001:1001 . /tmp/CTFd
 
 RUN useradd \
     --no-log-init \
     --shell /bin/bash \
     -u 1001 \
     ctfd \
-    && mkdir -p /var/log/CTFd /var/uploads \
-    && chown -R 1001:1001 /var/log/CTFd /var/uploads /opt/CTFd \
-    && chmod +x /opt/CTFd/docker-entrypoint.sh
+    && mkdir -p /tmp/log/CTFd /tmp/uploads \
+    && chown -R 1001:1001 /tmp/log/CTFd /tmp/uploads /tmp/CTFd \
+    && chmod +x /tmp/CTFd/docker-entrypoint.sh
 
-COPY --chown=1001:1001 --from=build /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+COPY --chown=1001:1001 --from=build /opt/venv /tmp/venv
+ENV PATH="/tmp/venv/bin:$PATH"
 
 USER 1001
 EXPOSE 8000
-ENTRYPOINT ["/opt/CTFd/docker-entrypoint.sh"]
+ENTRYPOINT ["/tmp/CTFd/docker-entrypoint.sh"]

@@ -26,3 +26,5 @@ spec:
         databases:
           - envVarPrefix: DATABASE
             name: ctf
+  env:
+    SKIP_DB_PING: "true"
