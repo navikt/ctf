@@ -1,0 +1,28 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: ctf
+  namespace: security-champion-admin
+  labels:
+    team: security-champion-admin
+spec:
+  image: {{ image }}
+  port: 8000
+  ingresses:
+    - https://ctf.dev.intern.nav.no
+  liveness:
+    path: /
+  readiness:
+    path: /
+  replicas:
+    min: 1
+    max: 1
+  redis:
+    - instance: ctf
+      access: readwrite
+  gcp:
+    sqlInstances:
+      - type: POSTGRES_14
+        databases:
+          - envVarPrefix: DATABASE
+            name: CTF
