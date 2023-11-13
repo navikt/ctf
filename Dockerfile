@@ -33,6 +33,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libffi6 \
         libssl1.1 \
+        python-psycopg2 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
