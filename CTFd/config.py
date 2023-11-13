@@ -102,6 +102,8 @@ class ServerConfig(object):
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
     REDIS_URL: str = os.environ['REDIS_URI_CTF']
+    if REDIS_URL and REDIS_URL.startswith("postgres://"):
+        REDIS_URL = REDIS_URL.replace("postgres://", "postgresql://", 1)
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
     REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
