@@ -85,7 +85,7 @@ class ServerConfig(object):
     SECRET_KEY: str = empty_str_cast(config_ini["server"]["SECRET_KEY"]) \
         or gen_secret_key()
 
-    DATABASE_URL: str = os.environment.get('DATABASE_URL')
+    DATABASE_URL: str = os.environ['DATABASE_URL']
     if not DATABASE_URL:
         if empty_str_cast(config_ini["server"]["DATABASE_HOST"]) is not None:
             # construct URL from individual variables
@@ -101,7 +101,7 @@ class ServerConfig(object):
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
-    REDIS_URL: str = os.environment.get('REDIS_URI_CTF')
+    REDIS_URL: str = os.environ['REDIS_URI_CTF']
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
     REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
