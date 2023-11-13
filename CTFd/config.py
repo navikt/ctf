@@ -105,8 +105,8 @@ class ServerConfig(object):
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
     REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
-    REDIS_USER: str = empty_str_cast(config_ini["server"]["REDIS_USERNAME_CTF"]) # Dont need user/pass?
-    REDIS_PASSWORD: str = empty_str_cast(config_ini["server"]["REDIS_PASSWORD_CTF"])
+    REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
+    REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
     REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
     REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
 
