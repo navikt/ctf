@@ -1,1 +1,6 @@
 .idea
+.coverage
+.ctfd_secret_key
+coverage.xml
+**pycache**
+node_modules/

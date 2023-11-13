@@ -105,13 +105,13 @@ class ServerConfig(object):
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
     REDIS_URL: str = os.environ['REDIS_URI_CTF']
+    parsed_redis_url = urlparse(REDIS_URL)
 
-    REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
-    REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "rediss"
+    REDIS_HOST: str = parsed_redis_url.hostname
+    REDIS_PROTOCOL: str = "rediss"
     REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
     REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
-    parsed_redis_url = urlparse(REDIS_URL)
-    REDIS_PORT: int = parsed_redis_url.port if parsed_redis_url.port else 6379
+    REDIS_PORT: int = parsed_redis_url.port
     REDIS_DB: int = 0
 
     if REDIS_URL or REDIS_HOST is None:
