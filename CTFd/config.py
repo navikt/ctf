@@ -86,31 +86,31 @@ class ServerConfig(object):
         or gen_secret_key()
 
     DATABASE_URL: str = os.environ['DATABASE_URL']
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     if not DATABASE_URL:
-        if empty_str_cast(config_ini["server"]["DATABASE_HOST"]) is not None:
+        if os.environ['DATABASE_HOST'] is not None:
             # construct URL from individual variables
             DATABASE_URL = str(URL(
-                drivername=empty_str_cast(config_ini["server"]["DATABASE_PROTOCOL"]) or "mysql+pymysql",
-                username=empty_str_cast(config_ini["server"]["DATABASE_USERNAME"]) or "ctfd",
-                password=empty_str_cast(config_ini["server"]["DATABASE_PASSWORD"]),
-                host=empty_str_cast(config_ini["server"]["DATABASE_HOST"]),
-                port=empty_str_cast(config_ini["server"]["DATABASE_PORT"]),
-                database=empty_str_cast(config_ini["server"]["DATABASE_DATABASE"]) or "ctfd",
+                drivername="postgresql",
+                username=os.environ['DATABASE_USERNAME'],
+                password=os.environ['DATABASE_PASSWORD'],
+                host=os.environ['DATABASE_HOST'],
+                port=os.environ['DATABASE_PORT'],
+                database=os.environ['DATABASE_DATABASE'],
             ))
         else:
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
     REDIS_URL: str = os.environ['REDIS_URI_CTF']
-    if REDIS_URL and REDIS_URL.startswith("postgres://"):
-        REDIS_URL = REDIS_URL.replace("postgres://", "postgresql://", 1)
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
     REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
     REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
     REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
     REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
-    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
+    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or
 
     if REDIS_URL or REDIS_HOST is None:
         CACHE_REDIS_URL = REDIS_URL
