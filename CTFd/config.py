@@ -110,7 +110,7 @@ class ServerConfig(object):
     REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
     REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
     REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
-    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or
+    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
 
     if REDIS_URL or REDIS_HOST is None:
         CACHE_REDIS_URL = REDIS_URL
