@@ -9,7 +9,7 @@ spec:
   image: {{ image }}
   port: 8000
   ingresses:
-    - https://ctf.dev.intern.nav.no
+    - https://ctf.intern.dev.nav.no
   liveness:
     path: /
   readiness:
