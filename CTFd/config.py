@@ -2,6 +2,7 @@ import configparser
 import os
 from distutils.util import strtobool
 from typing import Union
+from urllib.parse import urlparse
 
 from sqlalchemy.engine.url import URL
 
@@ -106,11 +107,12 @@ class ServerConfig(object):
     REDIS_URL: str = os.environ['REDIS_URI_CTF']
 
     REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
-    REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
+    REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "rediss"
     REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
     REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
-    REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
-    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
+    parsed_redis_url = urlparse(REDIS_URL)
+    REDIS_PORT: int = parsed_redis_url.port if parsed_redis_url.port else 6379
+    REDIS_DB: int = 0
 
     if REDIS_URL or REDIS_HOST is None:
         CACHE_REDIS_URL = REDIS_URL
