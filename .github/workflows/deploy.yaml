@@ -1,8 +1,6 @@
 name: Deploy
-
 on:
   workflow_dispatch:
-
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -11,17 +9,15 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: nais/docker-build-push@v0
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # ratchet:actions/checkout@v3
+      - uses: nais/docker-build-push@3257289fd8cb0018ce0bda55db86ee54c21669b1 # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: security-champions-admin
           pull: true
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
-
-      - uses: nais/deploy/actions/deploy@main
+      - uses: nais/deploy/actions/deploy@da1c88ec48a36916fa72a7d1b5952319b3c95ae1 # ratchet:nais/deploy/actions/deploy@v1
         env:
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
           CLUSTER: dev-gcp
