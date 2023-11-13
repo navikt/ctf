@@ -25,4 +25,4 @@ spec:
       - type: POSTGRES_14
         databases:
           - envVarPrefix: DATABASE
-            name: CTF
+            name: ctf
