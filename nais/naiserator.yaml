@@ -5,6 +5,8 @@ metadata:
   namespace: ctf
   labels:
     team: ctf
+  annotations:
+    nais.io/read-only-file-system: "false"
 spec:
   image: {{ image }}
   port: 8000
