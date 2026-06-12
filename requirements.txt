@@ -127,6 +127,8 @@ passlib==1.7.4
     # via -r requirements.in
 pillow==12.2.0
     # via -r requirements.in
+psycopg2-binary==2.9.10
+    # via -r requirements.in
 pycparser==2.22
     # via cffi
 pydantic==1.6.2
@@ -135,8 +137,6 @@ pymysql[rsa]==1.1.1
     # via
     #   -r requirements.in
     #   pymysql
-psycopg2-binary==2.9.10
-    # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via
     #   botocore
@@ -184,7 +184,7 @@ typing-extensions==4.14.1
     # via
     #   alembic
     #   referencing
-urllib3==2.6.0
+urllib3==2.7.0
     # via
     #   -r requirements.in
     #   botocore
