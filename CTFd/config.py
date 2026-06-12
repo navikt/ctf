@@ -1,10 +1,12 @@
 import configparser
+import json
 import os
 from distutils.util import strtobool
 from typing import Union
-from urllib.parse import urlparse
 
 from sqlalchemy.engine.url import URL
+
+_FORCED_EXTRA_CONFIG_TYPES = {}
 
 
 class EnvInterpolation(configparser.BasicInterpolation):
@@ -14,12 +16,23 @@ class EnvInterpolation(configparser.BasicInterpolation):
         value = super().before_get(parser, section, option, value, defaults)
         envvar = os.getenv(option)
         if value == "" and envvar:
-            return process_string_var(envvar)
+            return process_string_var(envvar, key=option)
         else:
             return value
 
 
-def process_string_var(value):
+def process_string_var(value, key=None):
+    if key in _FORCED_EXTRA_CONFIG_TYPES:
+        t = _FORCED_EXTRA_CONFIG_TYPES[key]
+        if t == "str":
+            return str(value)
+        elif t == "int":
+            return int(value)
+        elif t == "float":
+            return float(value)
+        elif t == "bool":
+            return bool(strtobool(value))
+
     if value == "":
         return None
 
@@ -86,33 +99,30 @@ class ServerConfig(object):
     SECRET_KEY: str = empty_str_cast(config_ini["server"]["SECRET_KEY"]) \
         or gen_secret_key()
 
-    DATABASE_URL: str = os.environ['DATABASE_URL']
-    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL: str = empty_str_cast(config_ini["server"]["DATABASE_URL"])
     if not DATABASE_URL:
-        if os.environ['DATABASE_HOST'] is not None:
+        if empty_str_cast(config_ini["server"]["DATABASE_HOST"]) is not None:
             # construct URL from individual variables
             DATABASE_URL = str(URL(
-                drivername="postgresql",
-                username=os.environ['DATABASE_USERNAME'],
-                password=os.environ['DATABASE_PASSWORD'],
-                host=os.environ['DATABASE_HOST'],
-                port=os.environ['DATABASE_PORT'],
-                database=os.environ['DATABASE_DATABASE'],
+                drivername=empty_str_cast(config_ini["server"]["DATABASE_PROTOCOL"]) or "mysql+pymysql",
+                username=empty_str_cast(config_ini["server"]["DATABASE_USER"]) or "ctfd",
+                password=empty_str_cast(config_ini["server"]["DATABASE_PASSWORD"]),
+                host=empty_str_cast(config_ini["server"]["DATABASE_HOST"]),
+                port=empty_str_cast(config_ini["server"]["DATABASE_PORT"]),
+                database=empty_str_cast(config_ini["server"]["DATABASE_NAME"]) or "ctfd",
             ))
         else:
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
-    REDIS_URL: str = os.environ['REDIS_URI_CTF']
-    parsed_redis_url = urlparse(REDIS_URL)
+    REDIS_URL: str = empty_str_cast(config_ini["server"]["REDIS_URL"])
 
-    REDIS_HOST: str = parsed_redis_url.hostname
-    REDIS_PROTOCOL: str = "rediss"
-    REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
-    REDIS_PASSWORD: os.environ['REDIS_PASSWORD_CTF']
-    REDIS_PORT: int = parsed_redis_url.port
-    REDIS_DB: int = 0
+    REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
+    REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
+    REDIS_USER: str = empty_str_cast(config_ini["server"]["REDIS_USER"])
+    REDIS_PASSWORD: str = empty_str_cast(config_ini["server"]["REDIS_PASSWORD"])
+    REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
+    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
 
     if REDIS_URL or REDIS_HOST is None:
         CACHE_REDIS_URL = REDIS_URL
@@ -126,15 +136,15 @@ class ServerConfig(object):
         CACHE_REDIS_URL += f"@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
-#    if CACHE_REDIS_URL:
-#        CACHE_TYPE: str = "redis"
-#    else:
-    CACHE_TYPE: str = "filesystem"
-    CACHE_DIR: str = os.path.join(
-        os.path.dirname(__file__), os.pardir, ".data", "filesystem_cache"
-    )
-    # Override the threshold of cached values on the filesystem. The default is 500. Don't change unless you know what you're doing.
-    CACHE_THRESHOLD: int = 0
+    if CACHE_REDIS_URL:
+        CACHE_TYPE: str = "redis"
+    else:
+        CACHE_TYPE: str = "filesystem"
+        CACHE_DIR: str = os.path.join(
+            os.path.dirname(__file__), os.pardir, ".data", "filesystem_cache"
+        )
+        # Override the threshold of cached values on the filesystem. The default is 500. Don't change unless you know what you're doing.
+        CACHE_THRESHOLD: int = 0
 
     # === SECURITY ===
     SESSION_COOKIE_HTTPONLY: bool = config_ini["security"].getboolean("SESSION_COOKIE_HTTPONLY", fallback=True)
@@ -144,6 +154,15 @@ class ServerConfig(object):
 
     PERMANENT_SESSION_LIFETIME: int = config_ini["security"].getint("PERMANENT_SESSION_LIFETIME") \
         or 604800
+
+    CROSS_ORIGIN_OPENER_POLICY: str = empty_str_cast(config_ini["security"].get("CROSS_ORIGIN_OPENER_POLICY")) \
+        or "same-origin-allow-popups"
+
+    TRUSTED_HOSTS: list[str] | None = None
+    if config_ini["security"].get("TRUSTED_HOSTS"):
+        TRUSTED_HOSTS = [
+            h.strip() for h in empty_str_cast(config_ini["security"].get("TRUSTED_HOSTS")).split(",")
+        ]
 
     """
     TRUSTED_PROXIES:
@@ -216,6 +235,8 @@ class ServerConfig(object):
 
         AWS_S3_CUSTOM_DOMAIN: str = empty_str_cast(config_ini["uploads"].get("AWS_S3_CUSTOM_DOMAIN", ""))
 
+        AWS_S3_CUSTOM_PREFIX: str = empty_str_cast(config_ini["uploads"].get("AWS_S3_CUSTOM_PREFIX", ""))
+
         AWS_S3_ADDRESSING_STYLE: str = empty_str_cast(config_ini["uploads"].get("AWS_S3_ADDRESSING_STYLE", ""), default="auto")
 
     # === OPTIONAL ===
@@ -235,11 +256,22 @@ class ServerConfig(object):
 
     APPLICATION_ROOT: str = empty_str_cast(config_ini["optional"]["APPLICATION_ROOT"], default="/")
 
+    RUN_ID: str = empty_str_cast(config_ini["optional"].get("RUN_ID"), default=None)
+
     SERVER_SENT_EVENTS: bool = process_boolean_str(empty_str_cast(config_ini["optional"]["SERVER_SENT_EVENTS"], default=True))
 
     HTML_SANITIZATION: bool = process_boolean_str(empty_str_cast(config_ini["optional"]["HTML_SANITIZATION"], default=False))
 
     SAFE_MODE: bool = process_boolean_str(empty_str_cast(config_ini["optional"].get("SAFE_MODE", False), default=False))
+
+    EMAIL_CONFIRMATION_REQUIRE_INTERACTION: bool = process_boolean_str(empty_str_cast(config_ini["optional"].get("EMAIL_CONFIRMATION_REQUIRE_INTERACTION", False), default=False))
+
+    EXTRA_CONFIGS_FORCE_TYPES: str = empty_str_cast(config_ini["optional"].get("EXTRA_CONFIGS_FORCE_TYPES"), default=None)
+    if EXTRA_CONFIGS_FORCE_TYPES:
+        config_types = EXTRA_CONFIGS_FORCE_TYPES.split(",")
+        for entry in config_types:
+            k, v = entry.split("=")
+            _FORCED_EXTRA_CONFIG_TYPES[k] = v
 
     if DATABASE_URL.startswith("sqlite") is False:
         SQLALCHEMY_ENGINE_OPTIONS = {
@@ -250,6 +282,25 @@ class ServerConfig(object):
     # === OAUTH ===
     OAUTH_CLIENT_ID: str = empty_str_cast(config_ini["oauth"]["OAUTH_CLIENT_ID"])
     OAUTH_CLIENT_SECRET: str = empty_str_cast(config_ini["oauth"]["OAUTH_CLIENT_SECRET"])
+
+    # === MANAGEMENT ===
+    PRESET_ADMIN_NAME: str = empty_str_cast(config_ini["management"].get("PRESET_ADMIN_NAME", "")) if config_ini.has_section("management") else None
+    PRESET_ADMIN_EMAIL: str = empty_str_cast(config_ini["management"].get("PRESET_ADMIN_EMAIL", "")) if config_ini.has_section("management") else None
+    PRESET_ADMIN_PASSWORD: str = empty_str_cast(config_ini["management"].get("PRESET_ADMIN_PASSWORD", "")) if config_ini.has_section("management") else None
+    PRESET_ADMIN_TOKEN: str = empty_str_cast(config_ini["management"].get("PRESET_ADMIN_TOKEN", "")) if config_ini.has_section("management") else None
+    PRESET_CONFIGS: str = empty_str_cast(config_ini["management"].get("PRESET_CONFIGS", "")) if config_ini.has_section("management") else None
+    if PRESET_CONFIGS and SAFE_MODE is False:
+        try:
+            PRESET_CONFIGS = json.loads(PRESET_CONFIGS)
+        except (ValueError, TypeError):
+            print("Exception occurred during PRESET_CONFIGS loading")
+            PRESET_CONFIGS = {}
+    else:
+        PRESET_CONFIGS = {}
+
+    # === EXTRA ===
+    # Since the configurations in section "[extra]" will be loaded later, it is not necessary to declare them here.
+    # However, if you want to have some processing or checking on the value, you can still declare it here just like other configurations.
 # fmt: on
 
 
@@ -271,4 +322,10 @@ class TestingConfig(ServerConfig):
 # Actually initialize ServerConfig to allow us to add more attributes on
 Config = ServerConfig()
 for k, v in config_ini.items("extra"):
+    # We should only add the values that are not yet loaded in ServerConfig.
+    if hasattr(Config, k):
+        raise ValueError(
+            f"Built-in Config {k} should not be defined in the [extra] section of config.ini"
+        )
+
     setattr(Config, k, v)
