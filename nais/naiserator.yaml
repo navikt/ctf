@@ -20,12 +20,12 @@ spec:
   replicas:
     min: 1
     max: 1
-  redis:
+  valkey:
     - instance: ctf
       access: readwrite
   gcp:
     sqlInstances:
-      - type: POSTGRES_14
+      - type: POSTGRES_18
         databases:
           - envVarPrefix: DATABASE
             name: ctf
