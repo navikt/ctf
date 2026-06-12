@@ -3,6 +3,7 @@ import json
 import os
 from distutils.util import strtobool
 from typing import Union
+from urllib.parse import urlparse
 
 from sqlalchemy.engine.url import URL
 
@@ -99,30 +100,33 @@ class ServerConfig(object):
     SECRET_KEY: str = empty_str_cast(config_ini["server"]["SECRET_KEY"]) \
         or gen_secret_key()
 
-    DATABASE_URL: str = empty_str_cast(config_ini["server"]["DATABASE_URL"])
+    DATABASE_URL: str = os.environ['DATABASE_URL']
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     if not DATABASE_URL:
-        if empty_str_cast(config_ini["server"]["DATABASE_HOST"]) is not None:
+        if os.environ['DATABASE_HOST'] is not None:
             # construct URL from individual variables
             DATABASE_URL = str(URL(
-                drivername=empty_str_cast(config_ini["server"]["DATABASE_PROTOCOL"]) or "mysql+pymysql",
-                username=empty_str_cast(config_ini["server"]["DATABASE_USER"]) or "ctfd",
-                password=empty_str_cast(config_ini["server"]["DATABASE_PASSWORD"]),
-                host=empty_str_cast(config_ini["server"]["DATABASE_HOST"]),
-                port=empty_str_cast(config_ini["server"]["DATABASE_PORT"]),
-                database=empty_str_cast(config_ini["server"]["DATABASE_NAME"]) or "ctfd",
+                drivername="postgresql",
+                username=os.environ['DATABASE_USERNAME'],
+                password=os.environ['DATABASE_PASSWORD'],
+                host=os.environ['DATABASE_HOST'],
+                port=os.environ['DATABASE_PORT'],
+                database=os.environ['DATABASE_DATABASE'],
             ))
         else:
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
-    REDIS_URL: str = empty_str_cast(config_ini["server"]["REDIS_URL"])
+    REDIS_URL: str = os.environ['REDIS_URI_CTF']
+    parsed_redis_url = urlparse(REDIS_URL)
 
-    REDIS_HOST: str = empty_str_cast(config_ini["server"]["REDIS_HOST"])
-    REDIS_PROTOCOL: str = empty_str_cast(config_ini["server"]["REDIS_PROTOCOL"]) or "redis"
-    REDIS_USER: str = empty_str_cast(config_ini["server"]["REDIS_USER"])
-    REDIS_PASSWORD: str = empty_str_cast(config_ini["server"]["REDIS_PASSWORD"])
-    REDIS_PORT: int = empty_str_cast(config_ini["server"]["REDIS_PORT"]) or 6379
-    REDIS_DB: int = empty_str_cast(config_ini["server"]["REDIS_DB"]) or 0
+    REDIS_HOST: str = parsed_redis_url.hostname
+    REDIS_PROTOCOL: str = "rediss"
+    REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
+    REDIS_PASSWORD: str = os.environ['REDIS_PASSWORD_CTF']
+    REDIS_PORT: int = parsed_redis_url.port
+    REDIS_DB: int = 0
 
     if REDIS_URL or REDIS_HOST is None:
         CACHE_REDIS_URL = REDIS_URL
@@ -136,15 +140,15 @@ class ServerConfig(object):
         CACHE_REDIS_URL += f"@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
-    if CACHE_REDIS_URL:
-        CACHE_TYPE: str = "redis"
-    else:
-        CACHE_TYPE: str = "filesystem"
-        CACHE_DIR: str = os.path.join(
-            os.path.dirname(__file__), os.pardir, ".data", "filesystem_cache"
-        )
-        # Override the threshold of cached values on the filesystem. The default is 500. Don't change unless you know what you're doing.
-        CACHE_THRESHOLD: int = 0
+#    if CACHE_REDIS_URL:
+#        CACHE_TYPE: str = "redis"
+#    else:
+    CACHE_TYPE: str = "filesystem"
+    CACHE_DIR: str = os.path.join(
+        os.path.dirname(__file__), os.pardir, ".data", "filesystem_cache"
+    )
+    # Override the threshold of cached values on the filesystem. The default is 500. Don't change unless you know what you're doing.
+    CACHE_THRESHOLD: int = 0
 
     # === SECURITY ===
     SESSION_COOKIE_HTTPONLY: bool = config_ini["security"].getboolean("SESSION_COOKIE_HTTPONLY", fallback=True)
