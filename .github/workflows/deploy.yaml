@@ -9,11 +9,11 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: nais/docker-build-push@3257289fd8cb0018ce0bda55db86ee54c21669b1 # ratchet:nais/docker-build-push@v0
+      - uses: nais/docker-build-push@05dbb6091b30bd84279c6d64a45ef8782fd410a5 # v0
         id: docker-push
         with:
-          team: appsec-ctf
-      - uses: nais/deploy/actions/deploy@da1c88ec48a36916fa72a7d1b5952319b3c95ae1 # ratchet:nais/deploy/actions/deploy@v1
+          team: ctf
+      - uses: nais/deploy/actions/deploy@8a6fb62e73f837af6287d5db84a46ea96aa6c30d # v2
         env:
           RESOURCE: nais/naiserator.yaml
           CLUSTER: dev-gcp
