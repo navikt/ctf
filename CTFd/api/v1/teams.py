@@ -29,7 +29,13 @@ from CTFd.utils.decorators.visibility import (
     check_score_visibility,
 )
 from CTFd.utils.helpers.models import build_model_filters
-from CTFd.utils.user import get_current_team, get_current_user_type, is_admin
+from CTFd.utils.user import (
+    get_current_team,
+    get_current_user_type,
+    get_team_attrs,
+    get_team_public_api,
+    is_admin,
+)
 
 teams_namespace = Namespace("teams", description="Endpoint to retrieve Teams")
 
@@ -109,13 +115,13 @@ class TeamList(Resource):
             teams = (
                 Teams.query.filter_by(**query_args)
                 .filter(*filters)
-                .paginate(per_page=50, max_per_page=100)
+                .paginate(per_page=50, max_per_page=100, error_out=False)
             )
         else:
             teams = (
                 Teams.query.filter_by(hidden=False, banned=False, **query_args)
                 .filter(*filters)
-                .paginate(per_page=50, max_per_page=100)
+                .paginate(per_page=50, max_per_page=100, error_out=False)
             )
 
         user_type = get_current_user_type(fallback="user")
@@ -191,22 +197,21 @@ class TeamPublic(Resource):
         },
     )
     def get(self, team_id):
-        team = Teams.query.filter_by(id=team_id).first_or_404()
+        team = get_team_attrs(team_id=team_id)
+        if team is None:
+            abort(404)
 
         if (team.banned or team.hidden) and is_admin() is False:
             abort(404)
 
         user_type = get_current_user_type(fallback="user")
-        view = TeamSchema.views.get(user_type)
-        schema = TeamSchema(view=view)
-        response = schema.dump(team)
-
-        if response.errors:
-            return {"success": False, "errors": response.errors}, 400
-
-        response.data["place"] = team.place
-        response.data["score"] = team.score
-        return {"success": True, "data": response.data}
+        success, data, status_code = get_team_public_api(
+            team_id=team_id, user_type=user_type
+        )
+        if success:
+            return {"success": success, "data": data}, status_code
+        else:
+            return {"success": success, "errors": data}, status_code
 
     @admins_only
     @teams_namespace.doc(
@@ -290,8 +295,11 @@ class TeamPrivate(Resource):
         if response.errors:
             return {"success": False, "errors": response.errors}, 400
 
+        # A team can always calculate their score regardless of any setting because they can simply sum all of their challenges
+        # Therefore a team requesting their private data should be able to get their own current score
+        # However place is not something that a team can ascertain on their own so it is always gated behind freeze time
         response.data["place"] = team.place
-        response.data["score"] = team.score
+        response.data["score"] = team.get_score(admin=True)
         return {"success": True, "data": response.data}
 
     @authed_only
