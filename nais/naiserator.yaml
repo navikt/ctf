@@ -26,6 +26,7 @@ spec:
   gcp:
     sqlInstances:
       - type: POSTGRES_18
+        tier: db-f1-micro
         databases:
           - envVarPrefix: DATABASE
             name: ctf
