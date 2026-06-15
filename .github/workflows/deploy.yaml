@@ -12,7 +12,7 @@ jobs:
       - uses: nais/docker-build-push@05dbb6091b30bd84279c6d64a45ef8782fd410a5 # v0
         id: docker-push
         with:
-          team: ctf
+          team: appsec-ctf
       - uses: nais/deploy/actions/deploy@8a6fb62e73f837af6287d5db84a46ea96aa6c30d # v2
         env:
           RESOURCE: nais/naiserator.yaml
