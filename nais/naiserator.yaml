@@ -13,6 +13,12 @@ spec:
   port: 8000
   ingresses:
     - https://ctf.intern.dev.nav.no
+  resources:
+    limits:
+      memory: 1024Mi
+    requests:
+      cpu: 10m
+      memory: 256Mi
   liveness:
     path: /
   readiness:
