@@ -118,26 +118,26 @@ class ServerConfig(object):
             # default to local SQLite DB
             DATABASE_URL = f"sqlite:///{os.path.dirname(os.path.abspath(__file__))}/ctfd.db"
 
-    REDIS_URL: str = os.environ['REDIS_URI_CTF']
+    REDIS_URL: str = os.environ.get('REDIS_URI_CTF', '')
     parsed_redis_url = urlparse(REDIS_URL)
 
     REDIS_HOST: str = parsed_redis_url.hostname
     REDIS_PROTOCOL: str = "rediss"
-    REDIS_USER: str = os.environ['REDIS_USERNAME_CTF']
-    REDIS_PASSWORD: str = os.environ['REDIS_PASSWORD_CTF']
+    REDIS_USER: str = os.environ.get('REDIS_USERNAME_CTF', '')
+    REDIS_PASSWORD: str = os.environ.get('REDIS_PASSWORD_CTF', '')
     REDIS_PORT: int = parsed_redis_url.port
     REDIS_DB: int = 0
 
-    if REDIS_URL or REDIS_HOST is None:
-        CACHE_REDIS_URL = REDIS_URL
-    else:
-        # construct URL from individual variables
+    if REDIS_HOST:
+        # Always build the URL with credentials — REDIS_URI_CTF does not include auth
         CACHE_REDIS_URL = f"{REDIS_PROTOCOL}://"
         if REDIS_USER:
             CACHE_REDIS_URL += REDIS_USER
         if REDIS_PASSWORD:
             CACHE_REDIS_URL += f":{REDIS_PASSWORD}"
         CACHE_REDIS_URL += f"@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+    else:
+        CACHE_REDIS_URL = None
 
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     if CACHE_REDIS_URL:
