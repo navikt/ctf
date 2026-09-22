@@ -2,9 +2,9 @@ apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
   name: ctfd
-  namespace: appsec-ctf
+  namespace: appsec-workshop
   labels:
-    team: appsec-ctf
+    team: appsec-workshop
   annotations:
     nais.io/read-only-file-system: "false"
     nais.io/run-as-user: "1001"
